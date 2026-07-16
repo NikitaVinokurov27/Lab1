@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Учи.ру · Сколько работы проделал ребёнок</title>
+<meta name="description" content="Виджет для родительского кабинета: показывает объём учебной работы ребёнка за неделю.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%237C4DFF'/%3E%3Ctext y='72' x='50' font-size='60' text-anchor='middle' fill='white' font-family='Arial'%3E%E2%8F%B1%3C/text%3E%3C/svg%3E">
 <style>
   :root{
     --violet:#7C4DFF; --violet-d:#5b34d6; --violet-l:#EFE9FF;
@@ -107,7 +109,8 @@
 
   /* widget */
   .widget{background:linear-gradient(160deg,#ffffff,#fbf9ff);border:1px solid var(--line);border-radius:20px;
-          padding:22px;box-shadow:var(--shadow)}
+          padding:22px;box-shadow:var(--shadow);animation:rise .4s cubic-bezier(.2,.7,.3,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
   .w-head{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);font-weight:700;margin-bottom:2px}
   .w-head .spark{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,var(--orange),#ffb877);display:inline-block}
   .w-name{font-size:15px;font-weight:800;margin:2px 0 10px}
@@ -398,7 +401,7 @@ function renderParent(){
     const m=Math.max(1,Math.round(d.by_day[k])); const h=Math.max(6,Math.round(m/maxm*66));
     const today=k===todayKey()?' today':'';
     const lbl = m>=60? (Math.floor(m/60)+'ч'+(m%60?(m%60+'м'):'')) : m+'м';
-    return '<div class="bar'+today+'"><div class="col" style="height:'+h+'px"></div>'+
+    return '<div class="bar'+today+'"><div class="col" style="height:0" data-h="'+h+'"></div>'+
            '<div class="m">'+lbl+'</div><div class="d">'+DAY_RU[k]+'</div></div>';
   }).join('');
 
@@ -406,7 +409,7 @@ function renderParent(){
    '<div class="widget">'+
      '<div class="w-head"><span class="spark"></span>СКОЛЬКО РАБОТЫ ПРОДЕЛАЛ РЕБЁНОК</div>'+
      '<div class="w-name">'+d.child_name+' вложил в учёбу за неделю</div>'+
-     '<div class="w-time">'+fmt(min)+'</div>'+
+     '<div class="w-time" data-min="'+min+'">'+fmt(0)+'</div>'+
      '<div class="w-lessons">Это примерно <b>'+les+' '+plural(les,'школьный урок','школьных урока','школьных уроков')+'</b> (по '+LESSON_MIN+' мин)</div>'+
      '<div class="w-stats">'+
        stat(d.tasks_done,plural(d.tasks_done,'задание выполнено','задания выполнено','заданий выполнено'))+
@@ -421,8 +424,26 @@ function renderParent(){
      '</div>'+
      '<div class="w-foot">Виджет показывает факт труда, а не оценку ребёнка</div>'+
    '</div>';
+  animateWidget(slot, min);
 }
-function stat(n,l){ return '<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'; }
+function stat(n,l){ return '<div class="stat"><div class="n" data-to="'+n+'">0</div><div class="l">'+l+'</div></div>'; }
+
+/* плавный набег цифр и рост столбцов при показе виджета */
+function animateNum(el,to,fmtFn,dur){
+  const done=()=>{ el.textContent=fmtFn(to); };
+  const start=performance.now();
+  (function step(now){
+    const t=Math.min(1,(now-start)/dur), e=1-Math.pow(1-t,3);
+    el.textContent=fmtFn(Math.round(to*e));
+    if(t<1) requestAnimationFrame(step); else done();
+  })(performance.now());
+  setTimeout(done, dur+150); // страховка: если rAF заморожен (фон/офскрин) — итог всё равно выставится
+}
+function animateWidget(slot,min){
+  animateNum(slot.querySelector('.w-time'), min, fmt, 900);
+  slot.querySelectorAll('.stat .n').forEach(n=>animateNum(n, +n.dataset.to, String, 800));
+  setTimeout(()=>slot.querySelectorAll('.bar .col').forEach(c=>c.style.height=c.dataset.h+'px'), 60);
+}
 
 /* modal with live formula */
 function openModal(){
