@@ -55,6 +55,23 @@
   .opt{border:2px solid var(--line);border-radius:12px;padding:14px;text-align:center;font-size:16px;
        font-weight:600;cursor:pointer;background:#fff;transition:.12s}
   .opt:hover{border-color:var(--violet);background:var(--violet-l)}
+  .opt.correct{border-color:var(--green);background:var(--green-l);color:var(--green)}
+  .opt.wrong{border-color:#f04438;background:#fee4e2;color:#f04438;animation:shake .34s}
+  .opt.dim{opacity:.45;pointer-events:none}
+  .opt.locked{pointer-events:none}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+  .task-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .solved-badge{font-size:12.5px;color:var(--muted);white-space:nowrap;background:#faf9ff;border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+  .solved-badge b{color:var(--violet-d);font-variant-numeric:tabular-nums}
+  .answer-fb{min-height:22px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;opacity:0;transition:.15s}
+  .answer-fb.show{opacity:1}
+  .answer-fb.ok{color:var(--green)}
+  .answer-fb.no{color:#f04438}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+         padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.25);
+         opacity:0;pointer-events:none;transition:.25s;z-index:60}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.ok{background:#0f9d58}
 
   .timer-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
   .status{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;
@@ -175,19 +192,17 @@
 
     <div class="study">
       <div class="card taskbox">
-        <div class="q">Задание 47. Сколько будет 6 × 7?</div>
-        <div class="opts">
-          <div class="opt" data-answer="correct">42</div>
-          <div class="opt" data-answer="wrong">40</div>
-          <div class="opt" data-answer="wrong">48</div>
-          <div class="opt" data-answer="wrong">36</div>
+        <div class="task-top">
+          <div class="q" id="qText">Задание. Сколько будет 6 × 7?</div>
+          <div class="solved-badge">Заданий: <b id="solvedCount">86</b></div>
         </div>
-        <div class="hint">Отвечай на задания — это шлёт события <b>task_done</b>, <b>error_review</b>, <b>attempt</b>.
-          Они попадают в счётчики виджета родителя вживую.</div>
+        <div class="opts" id="opts"></div>
+        <div class="answer-fb" id="answerFb"></div>
+        <div class="hint">Отвечай на задания — это шлёт события <b>task_done</b> и <b>attempt</b>,
+          они вживую попадают в счётчики виджета родителя.</div>
         <div class="mini">
-          <button class="btn" id="mDone">✅ Решить задание</button>
           <button class="btn" id="mErr">🔎 Разобрать ошибку</button>
-          <button class="btn" id="mRetry">🔁 Повторить</button>
+          <button class="btn" id="mRetry">🔁 Повторить попытку</button>
         </div>
       </div>
 
@@ -262,6 +277,8 @@
     <button class="btn" onclick="closeModal()">Понятно</button>
   </div>
 </div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 /* ================= constants (см. ADR-001 §3.2) ================= */
@@ -362,17 +379,64 @@ function heartbeat(){
 }
 $('playBtn').onclick=()=>running?stopSession():startSession();
 
-/* answering / manual events */
-document.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{
+/* ============ задания: мини-квиз с обратной связью ============ */
+const QUESTIONS=[
+  {q:'Сколько будет 6 × 7?', a:'42', opts:['42','40','48','36']},
+  {q:'Сколько будет 8 × 4?', a:'32', opts:['30','32','28','36']},
+  {q:'Сколько будет 9 × 6?', a:'54', opts:['54','56','48','63']},
+  {q:'Сколько будет 7 × 7?', a:'49', opts:['42','49','56','48']},
+  {q:'Сколько будет 5 × 8?', a:'40', opts:['35','40','45','48']}
+];
+let qIdx=0, answering=false;
+
+function updateSolved(){ $('solvedCount').textContent=load().tasks_done; }
+
+function renderQuestion(){
+  answering=false;
+  const item=QUESTIONS[qIdx%QUESTIONS.length];
+  $('qText').textContent='Задание. '+item.q;
+  const box=$('opts'); box.innerHTML='';
+  item.opts.forEach(v=>{
+    const el=document.createElement('div');
+    el.className='opt'; el.textContent=v;
+    el.onclick=()=>answer(el,v,item.a);
+    box.appendChild(el);
+  });
+  const fb=$('answerFb'); fb.className='answer-fb'; fb.textContent='';
+}
+
+function answer(el,chosen,correct){
+  if(answering) return; answering=true;
   lastActivity=Date.now();
-  if(o.dataset.answer==='correct'){ bump('tasks_done'); logLine('evt','task_done — верный ответ (6×7=42)'); }
-  else { bump('retries'); logLine('evt','attempt — неверно, повторная попытка'); }
-});
-$('mDone').onclick =()=>{ bump('tasks_done');      logLine('evt','task_done — задание завершено'); flash($('mDone')); };
-$('mErr').onclick  =()=>{ bump('errors_reviewed'); logLine('evt','error_review — ошибка разобрана'); flash($('mErr')); };
-$('mRetry').onclick=()=>{ bump('retries');         logLine('evt','attempt — повторная попытка'); flash($('mRetry')); };
+  const opts=[...document.querySelectorAll('#opts .opt')];
+  opts.forEach(o=>o.classList.add('locked'));
+  const fb=$('answerFb');
+  if(chosen===correct){
+    el.classList.add('correct'); bump('tasks_done'); updateSolved();
+    logLine('evt','task_done — верный ответ ('+correct+')');
+    fb.className='answer-fb ok show'; fb.textContent='✓ Верно! Задание засчитано (+1)';
+    showToast('Задание засчитано ✓', true);
+  } else {
+    el.classList.add('wrong');
+    opts.forEach(o=>{ if(o.textContent===correct) o.classList.add('correct'); else if(o!==el) o.classList.add('dim'); });
+    bump('retries');
+    logLine('evt','attempt — неверно, засчитана попытка (правильно '+correct+')');
+    fb.className='answer-fb no show'; fb.textContent='✗ Неверно. Правильный ответ: '+correct+'. Засчитана попытка.';
+    showToast('Попытка засчитана', false);
+  }
+  qIdx++;
+  setTimeout(renderQuestion, 1200);
+}
+
+$('mErr').onclick  =()=>{ bump('errors_reviewed'); logLine('evt','error_review — ошибка разобрана'); showToast('Ошибка разобрана 🔎', true); };
+$('mRetry').onclick=()=>{ bump('retries');         logLine('evt','attempt — повторная попытка');   showToast('Попытка засчитана 🔁', false); };
 function bump(field){ const d=load(); d[field]=(d[field]||0)+1; save(d); }
-function flash(el){ el.style.background='#c9f7de'; setTimeout(()=>el.style.background='',250); }
+
+let toastTimer=null;
+function showToast(text,ok){
+  const t=$('toast'); t.textContent=text; t.className='toast show'+(ok?' ok':'');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className='toast'+(ok?' ok':''),1600);
+}
 
 /* ================= parent cabinet + widget ================= */
 let abMode='control';
@@ -475,6 +539,8 @@ function resetAll(){
 
 /* init */
 tickWeek();
+renderQuestion();
+updateSolved();
 </script>
 </body>
 </html>
