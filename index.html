@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Учи.ру · Сколько работы проделал ребёнок</title>
+<style>
+  :root{
+    --violet:#7C4DFF; --violet-d:#5b34d6; --violet-l:#EFE9FF;
+    --orange:#FF8A3D; --orange-d:#f2701a;
+    --ink:#241a4d; --muted:#7b74a0; --line:#ece8fb;
+    --bg:#F6F4FF; --card:#ffffff; --green:#12b76a; --green-l:#e7f8ef;
+    --shadow:0 10px 30px rgba(74,45,160,.10);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+  /* header */
+  header{background:#fff;border-bottom:1px solid var(--line)}
+  .top{display:flex;align-items:center;gap:16px;height:64px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:20px;color:var(--violet)}
+  .logo .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--violet),#a98bff);display:inline-block}
+  .crumb{color:var(--muted);font-size:14px;margin-left:2px}
+  .top .spacer{flex:1}
+  .who{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+  .ava{width:30px;height:30px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;font-weight:700}
+
+  /* tabs */
+  .tabs{display:flex;gap:6px;margin:22px 0 20px}
+  .tab{border:none;background:#fff;border:1px solid var(--line);color:var(--muted);
+       padding:11px 18px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:.15s}
+  .tab:hover{color:var(--ink)}
+  .tab.active{background:var(--violet);color:#fff;border-color:var(--violet);box-shadow:var(--shadow)}
+
+  .page{display:none;animation:fade .25s}
+  .page.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  h2.title{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 18px;max-width:760px}
+
+  .grid{display:grid;gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow)}
+
+  /* ---- child study screen ---- */
+  .study{display:grid;grid-template-columns:1.3fr 1fr;gap:18px}
+  @media(max-width:820px){.study{grid-template-columns:1fr}}
+  .taskbox{min-height:230px;display:flex;flex-direction:column;gap:14px}
+  .taskbox .q{background:var(--violet-l);border-radius:14px;padding:20px;font-size:18px;font-weight:600}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt{border:2px solid var(--line);border-radius:12px;padding:14px;text-align:center;font-size:16px;
+       font-weight:600;cursor:pointer;background:#fff;transition:.12s}
+  .opt:hover{border-color:var(--violet);background:var(--violet-l)}
+
+  .timer-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+  .status{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;
+          padding:5px 12px;border-radius:999px;background:#f2f0fb;color:var(--muted)}
+  .status .led{width:9px;height:9px;border-radius:50%;background:#c4bfe0}
+  .status.live{background:var(--green-l);color:var(--green)}
+  .status.live .led{background:var(--green);box-shadow:0 0 0 0 rgba(18,183,106,.5);animation:pulse 1.4s infinite}
+  .status.idle{background:#fff4e8;color:var(--orange-d)}
+  .status.idle .led{background:var(--orange)}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(18,183,106,.5)}70%{box-shadow:0 0 0 10px rgba(18,183,106,0)}100%{box-shadow:0 0 0 0 rgba(18,183,106,0)}}
+  .bigtime{font-size:52px;font-weight:800;letter-spacing:1px;font-variant-numeric:tabular-nums;line-height:1}
+  .bigtime small{font-size:18px;color:var(--muted);font-weight:600}
+  .session-lbl{font-size:13px;color:var(--muted)}
+  .btn{border:none;border-radius:12px;padding:13px 22px;font-size:15px;font-weight:700;cursor:pointer;transition:.15s}
+  .btn-play{background:var(--green);color:#fff;width:100%}
+  .btn-stop{background:#fff;color:var(--ink);border:1px solid var(--line);width:100%}
+  .btn-play:hover{filter:brightness(1.05)}
+  .mini{display:flex;gap:8px;width:100%;margin-top:4px}
+  .mini .btn{flex:1;background:var(--violet-l);color:var(--violet-d);font-size:13px;padding:10px}
+  .mini .btn:hover{background:#e3d9ff}
+
+  .hint{font-size:12.5px;color:var(--muted);background:#fbfaff;border:1px dashed var(--line);
+        border-radius:10px;padding:10px 12px;line-height:1.5}
+  .hint b{color:var(--orange-d)}
+
+  .log{margin-top:16px;font-family:'Consolas',monospace;font-size:12px;color:var(--muted);
+       max-height:150px;overflow:auto;background:#faf9ff;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .log div{padding:1px 0}
+  .log .hb{color:var(--green)}
+  .log .idle{color:var(--orange-d)}
+  .log .evt{color:var(--violet-d)}
+
+  /* ---- parent cabinet ---- */
+  .abbar{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);
+         border-radius:14px;padding:12px 16px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .abbar .lbl{font-size:13px;font-weight:700;color:var(--muted)}
+  .switch{display:inline-flex;background:#f1eefb;border-radius:10px;padding:4px}
+  .switch button{border:none;background:none;padding:8px 16px;border-radius:8px;font-weight:700;
+                 font-size:13px;color:var(--muted);cursor:pointer}
+  .switch button.on{background:#fff;color:var(--violet);box-shadow:0 2px 6px rgba(74,45,160,.12)}
+  .abbar .note{font-size:12.5px;color:var(--muted);margin-left:auto}
+
+  .cab{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start}
+  @media(max-width:820px){.cab{grid-template-columns:1fr}}
+  .cab-block h3{margin:0 0 12px;font-size:16px}
+  .rowline{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .rowline:last-child{border:none}
+  .rowline .v{font-weight:700}
+  .banner{background:linear-gradient(120deg,#fff2e8,#ffe9d6);border:1px solid #ffd9b8;border-radius:14px;
+          padding:16px 18px;margin-top:16px;display:flex;align-items:center;gap:14px}
+  .banner .btn{background:var(--orange);color:#fff}
+
+  /* widget */
+  .widget{background:linear-gradient(160deg,#ffffff,#fbf9ff);border:1px solid var(--line);border-radius:20px;
+          padding:22px;box-shadow:var(--shadow)}
+  .w-head{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);font-weight:700;margin-bottom:2px}
+  .w-head .spark{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,var(--orange),#ffb877);display:inline-block}
+  .w-name{font-size:15px;font-weight:800;margin:2px 0 10px}
+  .w-time{font-size:40px;font-weight:800;color:var(--violet);line-height:1;font-variant-numeric:tabular-nums}
+  .w-lessons{color:var(--muted);font-size:13.5px;margin:8px 0 16px}
+  .w-lessons b{color:var(--orange-d)}
+  .w-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .stat{background:#faf9ff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .stat .n{font-size:20px;font-weight:800}
+  .stat .l{font-size:11.5px;color:var(--muted);line-height:1.3}
+  .rhythm .rlab{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:8px}
+  .bars{display:flex;align-items:flex-end;gap:8px;height:72px}
+  .bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%}
+  .bar .col{width:100%;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,var(--violet),#a98bff);min-height:4px;transition:height .4s}
+  .bar.today .col{background:linear-gradient(180deg,var(--orange),#ffb877)}
+  .bar .d{font-size:11px;color:var(--muted);font-weight:700}
+  .bar .m{font-size:10px;color:var(--muted)}
+  .w-cta{margin-top:16px;display:flex;gap:8px}
+  .w-cta .btn{flex:1;padding:11px}
+  .btn-ghost{background:#fff;border:1px solid var(--violet);color:var(--violet)}
+  .btn-solid{background:var(--violet);color:#fff}
+  .w-foot{font-size:11.5px;color:var(--muted);margin-top:12px;line-height:1.5;text-align:center}
+
+  .empty{color:var(--muted);font-size:14px;padding:30px;text-align:center;border:1px dashed var(--line);border-radius:14px}
+
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(36,26,77,.4);display:none;place-items:center;padding:20px;z-index:50}
+  .modal.show{display:grid}
+  .sheet{background:#fff;border-radius:20px;max-width:520px;width:100%;padding:26px;box-shadow:0 30px 80px rgba(0,0,0,.3)}
+  .sheet h3{margin:0 0 6px}
+  .sheet p{color:var(--muted);font-size:14px;line-height:1.6}
+  .formula{background:#faf9ff;border:1px solid var(--line);border-radius:12px;padding:14px;font-family:'Consolas',monospace;
+           font-size:13px;color:var(--ink);white-space:pre-wrap;line-height:1.6}
+  .sheet .btn{background:var(--violet);color:#fff;margin-top:16px;width:100%}
+  .foot{color:var(--muted);font-size:12px;text-align:center;padding:26px 0 40px}
+  .foot a{color:var(--violet);text-decoration:none;font-weight:600}
+  .reset{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap top">
+    <div class="logo"><span class="dot"></span>Учи.ру</div>
+    <span class="crumb">Родительский кабинет · демонстрационный прототип</span>
+    <div class="spacer"></div>
+    <div class="who">Родитель Саши <span class="ava">Р</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab active" data-tab="child">👦 Ребёнок занимается</button>
+    <button class="tab" data-tab="parent">👨‍👩‍👧 Кабинет родителя</button>
+  </div>
+
+  <!-- ============ CHILD ============ -->
+  <section class="page show" id="page-child">
+    <h2 class="title">Экран ребёнка — источник данных о времени</h2>
+    <p class="sub">Пока идёт занятие, клиент шлёт <b>heartbeat</b> и события. Активное время капает в счётчик
+      (как «часы в игре» в Steam) и складывается в недельный итог. Отойди от клавиатуры на несколько секунд —
+      сработает <b>idle threshold</b> и таймер встанет на паузу: открытая вкладка ≠ занятие.</p>
+
+    <div class="study">
+      <div class="card taskbox">
+        <div class="q">Задание 47. Сколько будет 6 × 7?</div>
+        <div class="opts">
+          <div class="opt" data-answer="correct">42</div>
+          <div class="opt" data-answer="wrong">40</div>
+          <div class="opt" data-answer="wrong">48</div>
+          <div class="opt" data-answer="wrong">36</div>
+        </div>
+        <div class="hint">Отвечай на задания — это шлёт события <b>task_done</b>, <b>error_review</b>, <b>attempt</b>.
+          Они попадают в счётчики виджета родителя вживую.</div>
+        <div class="mini">
+          <button class="btn" id="mDone">✅ Решить задание</button>
+          <button class="btn" id="mErr">🔎 Разобрать ошибку</button>
+          <button class="btn" id="mRetry">🔁 Повторить</button>
+        </div>
+      </div>
+
+      <div class="card timer-card">
+        <div class="status" id="status"><span class="led"></span><span id="statusText">Занятие не начато</span></div>
+        <div class="session-lbl">Активное время сессии</div>
+        <div class="bigtime" id="sessTime">0<small>с</small></div>
+        <button class="btn btn-play" id="playBtn">▶ Начать заниматься</button>
+        <div class="hint" style="text-align:center">За неделю накоплено: <b id="weekTotal">—</b></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <div style="font-weight:700;font-size:14px;margin-bottom:6px">Поток событий (то, что уходит на сервер)</div>
+      <div class="log" id="log"><div style="color:var(--muted)">Нажми «Начать заниматься», чтобы пошли heartbeat…</div></div>
+    </div>
+  </section>
+
+  <!-- ============ PARENT ============ -->
+  <section class="page" id="page-parent">
+    <h2 class="title">Кабинет родителя</h2>
+    <p class="sub">Тумблер ниже — это A/B-эксперимент из презентации. <b>Контроль</b> — текущий кабинет.
+      <b>Тест</b> — тот же кабинет плюс виджет недельного объёма работы. Сравниваем ΔCR в полный доступ.</p>
+
+    <div class="abbar">
+      <span class="lbl">A/B-группа:</span>
+      <div class="switch">
+        <button data-ab="control" class="on">Контроль</button>
+        <button data-ab="test">Тест (виджет)</button>
+      </div>
+      <span class="note" id="abNote">Текущий кабинет без объяснения объёма работы</span>
+    </div>
+
+    <div class="cab">
+      <div class="card cab-block">
+        <h3>Программа и активность Саши</h3>
+        <div class="rowline"><span>Математика · текущая тема</span><span class="v">Таблица умножения</span></div>
+        <div class="rowline"><span>Русский язык · текущая тема</span><span class="v">Безударные гласные</span></div>
+        <div class="rowline"><span>Выполнено заданий</span><span class="v" id="cabTasks">86</span></div>
+        <div class="rowline"><span>Ошибок разобрано</span><span class="v" id="cabErr">24</span></div>
+        <div class="rowline"><span>Последний вход</span><span class="v">сегодня</span></div>
+        <div class="banner">
+          <div style="flex:1">
+            <div style="font-weight:800">Откройте полный доступ</div>
+            <div style="font-size:13px;color:var(--muted)">Все предметы и задания без ограничений</div>
+          </div>
+          <button class="btn" onclick="trackIntent()">Подробнее о тарифах</button>
+        </div>
+      </div>
+
+      <!-- widget mounts here -->
+      <div id="widgetSlot"></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    Прототип к защите кейса VK × Учи.ру · МИВТ-25-3 · механизм TimeSpent описан в
+    <a href="ADR-001-time-spent.md">ADR-001</a> ·
+    <button class="reset" onclick="resetAll()">сбросить демо-данные</button>
+  </div>
+</div>
+
+<!-- details modal -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h3>Как считается «4 ч 35 мин»</h3>
+    <p>Активное время — это сумма heartbeat-сессий без простоя. Открытая вкладка не считается: если между
+      двумя «пульсами» разрыв больше порога — время не капает.</p>
+    <div class="formula" id="formulaBox"></div>
+    <p style="margin-top:14px">Виджет не оценивает ребёнка как «успешен / неуспешен». Он показывает
+      <b>факт труда</b> и делает невидимую работу заметной.</p>
+    <button class="btn" onclick="closeModal()">Понятно</button>
+  </div>
+</div>
+
+<script>
+/* ================= constants (см. ADR-001 §3.2) ================= */
+const STORAGE_KEY = 'uchi_effort_v1';
+const HB_MS = 2000;            // heartbeat каждые 2с (в проде 15с)
+const IDLE_THRESHOLD_MS = 6000;// нет активности >6с → простой (в проде 60с)
+const LESSON_MIN = 45;         // 1 «школьный урок»
+const DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
+const DAY_RU = {mon:'Пн',tue:'Вт',wed:'Ср',thu:'Чт',fri:'Пт',sat:'Сб',sun:'Вс'};
+
+/* ================= storage: агрегат (child_id, week_id) ================= */
+function seed(){
+  return {
+    child_id:'saha-001', child_name:'Саша', week_id:isoWeek(),
+    by_day:{mon:45,tue:55,thu:90,sat:85},   // минуты по дням → «Ритм недели» (сумма = 275 = 4ч35м)
+    tasks_done:86, errors_reviewed:24, retries:17
+  };
+}
+function load(){
+  try{ const d=JSON.parse(localStorage.getItem(STORAGE_KEY)); if(d&&d.by_day) return d; }catch(e){}
+  const s=seed(); save(s); return s;
+}
+function save(d){ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+function isoWeek(){
+  const dt=new Date(); const day=(dt.getDay()+6)%7; dt.setDate(dt.getDate()-day+3);
+  const first=new Date(dt.getFullYear(),0,4); const week=1+Math.round(((dt-first)/86400000-3+((first.getDay()+6)%7))/7);
+  return dt.getFullYear()+'-W'+String(week).padStart(2,'0');
+}
+function todayKey(){ return DAYS[(new Date().getDay()+6)%7]; }
+
+/* ================= derived ================= */
+function activeMinutes(d){ return Object.values(d.by_day).reduce((a,b)=>a+b,0); }
+function activeDays(d){ return Object.values(d.by_day).filter(m=>m>0).length; }
+function lessons(min){ return Math.round(min/LESSON_MIN); }
+function fmt(min){ const h=Math.floor(min/60),m=Math.round(min%60); return h? h+' ч '+(m?m+' мин':''):m+' мин'; }
+function fmtSec(s){ const m=Math.floor(s/60),ss=s%60; return m? m+' мин '+ss+' с':ss+' с'; }
+function plural(n,one,few,many){ const a=Math.abs(n)%100, b=a%10;
+  if(a>10&&a<20) return many; if(b>1&&b<5) return few; if(b===1) return one; return many; }
+
+/* ================= tabs ================= */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('show'));
+  t.classList.add('active');
+  document.getElementById('page-'+t.dataset.tab).classList.add('show');
+  if(t.dataset.tab==='parent') renderParent();
+});
+
+/* ================= child: live session ================= */
+let running=false, sessionSec=0, lastActivity=Date.now(), hbTimer=null;
+const $=id=>document.getElementById(id);
+
+function logLine(cls,txt){
+  const box=$('log'); const el=document.createElement('div');
+  el.className=cls; el.textContent='['+new Date().toLocaleTimeString()+'] '+txt;
+  box.prepend(el);
+}
+['mousemove','keydown','scroll','click','touchstart'].forEach(ev=>
+  document.addEventListener(ev,()=>lastActivity=Date.now(),{passive:true}));
+
+function setStatus(state,text){
+  const s=$('status'); s.className='status '+state; $('statusText').textContent=text;
+}
+function tickWeek(){
+  const d=load(); $('weekTotal').textContent=fmt(activeMinutes(d));
+}
+function startSession(){
+  running=true; sessionSec=0; lastActivity=Date.now();
+  $('playBtn').textContent='⏹ Закончить занятие';
+  $('playBtn').className='btn btn-stop';
+  logLine('evt','lesson_open  — открыт урок «Таблица умножения»');
+  setStatus('live','Занимается сейчас');
+  hbTimer=setInterval(heartbeat,HB_MS);
+}
+function stopSession(){
+  running=false; clearInterval(hbTimer);
+  $('playBtn').textContent='▶ Начать заниматься';
+  $('playBtn').className='btn btn-play';
+  setStatus('','Занятие завершено');
+  logLine('evt','session_end — активное время сессии: '+fmtSec(sessionSec));
+}
+function heartbeat(){
+  const idle = Date.now()-lastActivity > IDLE_THRESHOLD_MS;
+  if(idle){
+    setStatus('idle','Простой — время на паузе');
+    logLine('idle','heartbeat пропущен (idle > '+(IDLE_THRESHOLD_MS/1000)+'с) — время не капает');
+    return;
+  }
+  const add=HB_MS/1000;
+  sessionSec+=add;
+  setStatus('live','Занимается сейчас');
+  $('sessTime').innerHTML=sessionSec+'<small>с</small>';
+  // агрегируем в недельный итог по сегодняшнему дню
+  const d=load(); const k=todayKey();
+  d.by_day[k]=(d.by_day[k]||0)+add/60;
+  save(d); tickWeek();
+  logLine('hb','heartbeat +'+add+'с  → active_time, день '+DAY_RU[k]);
+}
+$('playBtn').onclick=()=>running?stopSession():startSession();
+
+/* answering / manual events */
+document.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{
+  lastActivity=Date.now();
+  if(o.dataset.answer==='correct'){ bump('tasks_done'); logLine('evt','task_done — верный ответ (6×7=42)'); }
+  else { bump('retries'); logLine('evt','attempt — неверно, повторная попытка'); }
+});
+$('mDone').onclick =()=>{ bump('tasks_done');      logLine('evt','task_done — задание завершено'); flash($('mDone')); };
+$('mErr').onclick  =()=>{ bump('errors_reviewed'); logLine('evt','error_review — ошибка разобрана'); flash($('mErr')); };
+$('mRetry').onclick=()=>{ bump('retries');         logLine('evt','attempt — повторная попытка'); flash($('mRetry')); };
+function bump(field){ const d=load(); d[field]=(d[field]||0)+1; save(d); }
+function flash(el){ el.style.background='#c9f7de'; setTimeout(()=>el.style.background='',250); }
+
+/* ================= parent cabinet + widget ================= */
+let abMode='control';
+document.querySelectorAll('.switch button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.switch button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); abMode=b.dataset.ab;
+  $('abNote').textContent = abMode==='test'
+    ? 'Кабинет + виджет «Саша вложил в учёбу»'
+    : 'Текущий кабинет без объяснения объёма работы';
+  renderParent();
+});
+
+function renderParent(){
+  const d=load();
+  $('cabTasks').textContent=d.tasks_done;
+  $('cabErr').textContent=d.errors_reviewed;
+  const slot=$('widgetSlot');
+  if(abMode==='control'){
+    slot.innerHTML='<div class="empty">Группа «Контроль».<br>Виджета нет — чтобы оценить объём работы,'+
+      ' родитель сам собирает картину из блоков слева.</div>';
+    return;
+  }
+  const min=activeMinutes(d), les=lessons(min), adays=activeDays(d);
+  const maxm=Math.max(...Object.values(d.by_day),1);
+  const bars=DAYS.filter(k=>d.by_day[k]).map(k=>{
+    const m=Math.max(1,Math.round(d.by_day[k])); const h=Math.max(6,Math.round(m/maxm*66));
+    const today=k===todayKey()?' today':'';
+    const lbl = m>=60? (Math.floor(m/60)+'ч'+(m%60?(m%60+'м'):'')) : m+'м';
+    return '<div class="bar'+today+'"><div class="col" style="height:'+h+'px"></div>'+
+           '<div class="m">'+lbl+'</div><div class="d">'+DAY_RU[k]+'</div></div>';
+  }).join('');
+
+  slot.innerHTML=
+   '<div class="widget">'+
+     '<div class="w-head"><span class="spark"></span>СКОЛЬКО РАБОТЫ ПРОДЕЛАЛ РЕБЁНОК</div>'+
+     '<div class="w-name">'+d.child_name+' вложил в учёбу за неделю</div>'+
+     '<div class="w-time">'+fmt(min)+'</div>'+
+     '<div class="w-lessons">Это примерно <b>'+les+' '+plural(les,'школьный урок','школьных урока','школьных уроков')+'</b> (по '+LESSON_MIN+' мин)</div>'+
+     '<div class="w-stats">'+
+       stat(d.tasks_done,plural(d.tasks_done,'задание выполнено','задания выполнено','заданий выполнено'))+
+       stat(d.errors_reviewed,plural(d.errors_reviewed,'ошибка разобрана','ошибки разобраны','ошибок разобрано'))+
+       stat(d.retries,plural(d.retries,'повторная попытка','повторные попытки','повторных попыток'))+
+       stat(adays,plural(adays,'день занятий','дня занятий','дней занятий'))+
+     '</div>'+
+     '<div class="rhythm"><div class="rlab">Ритм недели</div><div class="bars">'+bars+'</div></div>'+
+     '<div class="w-cta">'+
+       '<button class="btn btn-ghost" onclick="openModal()">Посмотреть подробнее</button>'+
+       '<button class="btn btn-solid" onclick="trackIntent()">Полный доступ</button>'+
+     '</div>'+
+     '<div class="w-foot">Виджет показывает факт труда, а не оценку ребёнка</div>'+
+   '</div>';
+}
+function stat(n,l){ return '<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'; }
+
+/* modal with live formula */
+function openModal(){
+  const d=load(), min=activeMinutes(d);
+  $('formulaBox').textContent=
+    'active_minutes = Σ heartbeat-сессий без простоя\n'+
+    '               = '+min+' мин\n\n'+
+    'school_lessons = round(active_minutes / '+LESSON_MIN+')\n'+
+    '               = round('+min+' / '+LESSON_MIN+') = '+lessons(min)+'\n\n'+
+    'idle_threshold = '+(IDLE_THRESHOLD_MS/1000)+' с  (пауза при простое)';
+  $('modal').classList.add('show');
+}
+function closeModal(){ $('modal').classList.remove('show'); }
+$('modal').onclick=e=>{ if(e.target.id==='modal') closeModal(); };
+
+/* metric: intent → переход в полный доступ */
+function trackIntent(){
+  const n=(+localStorage.getItem('uchi_intent')||0)+1;
+  localStorage.setItem('uchi_intent',n);
+  alert('Метрика зафиксирована: intent → переход на экран полного доступа.\n'+
+        'Группа: '+abMode.toUpperCase()+'. Всего кликов intent за сессию: '+n+
+        '\n\nНа проде это событие идёт в расчёт ΔCR(test) − ΔCR(control).');
+}
+
+function resetAll(){
+  localStorage.removeItem(STORAGE_KEY); localStorage.removeItem('uchi_intent');
+  location.reload();
+}
+
+/* init */
+tickWeek();
+</script>
+</body>
+</html>
